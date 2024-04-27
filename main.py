@@ -16,9 +16,11 @@ from utils import progress_bar
 
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
-parser.add_argument('--lr', default=0.1, type=float, help='learning rate')
+parser.add_argument('--lr', default=0.01, type=float, help='learning rate')
 parser.add_argument('--resume', '-r', action='store_true',
                     help='resume from checkpoint')
+parser.add_argument('--optim', '-o', help='optimizer', default='adam')
+parser.add_argument('--scheduler', '-s', help='scheduler', default='onecyclelr')
 args = parser.parse_args()
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -84,9 +86,20 @@ if args.resume:
     start_epoch = checkpoint['epoch']
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=args.lr,
+if args.optim == 'sgd':
+  optimizer = optim.SGD(net.parameters(), lr=args.lr,
                       momentum=0.9, weight_decay=5e-4)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
+elif args.optim == 'adam':
+  optimizer = optim.Adam(net.parameters(), lr=args.lr,
+                      weight_decay=5e-4)
+
+if args.scheduler == 'cosine_annealing':
+  scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
+elif args.scheduler == 'onecyclelr':
+  lr_max = 
+  scheduler = OneCycleLR(optimizer, max_lr=0.015, epochs=EPOCHS, steps_per_epoch=len(train_loader), final_div_factor=10, div_factor=10, pct_start=max_lr_epochs/EPOCHS, three_phase=False, anneal_strategy='linear')
+elif args.scheduler == 'reduced_lr_on_plateau':
+  scheduler = 
 
 
 # Training
@@ -108,7 +121,8 @@ def train(epoch):
         _, predicted = outputs.max(1)
         total += targets.size(0)
         correct += predicted.eq(targets).sum().item()
-
+        if args.scheduler == 'onecyclelr':
+          scheduler.step()
         progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                      % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
@@ -151,4 +165,5 @@ def test(epoch):
 for epoch in range(start_epoch, start_epoch+200):
     train(epoch)
     test(epoch)
-    scheduler.step()
+    if args.scheduler != 'onecyclelr':
+      scheduler.step()
