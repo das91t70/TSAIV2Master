@@ -13,9 +13,8 @@ def image_transforms(train):
   if train:
     return albumentations.Compose([
     albumentations.PadIfNeeded(min_height=36, min_width=36, p=1),
-    albumentations.RandomCrop(32,32),
-    albumentations.HorizontalFlip(p=0.5), # flip left right - horizontal flip
-    albumentations.CoarseDropout(max_holes=1, max_height = 8, max_width=8, min_holes = 1, min_height=8, min_width=8, fill_value=(0.49139968, 0.48215827 ,0.44653124,), mask_fill_value = None, p=0.2),
+    albumentations.RandomCrop(size=(32,32), padding=4),
+    albumentations.CoarseDropout(max_holes=1, max_height = 16, max_width=8, min_holes = 1, min_height=16, min_width=16, fill_value=(0.49139968, 0.48215827 ,0.44653124,), mask_fill_value = None, p=0.2),
     albumentations.augmentations.transforms.Normalize((0.49139968, 0.48215827 ,0.44653124,), (0.24703233,0.24348505,0.26158768,)),
         albumentations.pytorch.transforms.ToTensorV2()
     ])
