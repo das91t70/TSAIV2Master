@@ -57,7 +57,7 @@ classes = ('plane', 'car', 'bird', 'cat', 'deer',
 # Model
 print('==> Building model..')
 # net = VGG('VGG19')
-# net = ResNet18()
+net = ResNet18()
 # net = PreActResNet18()
 # net = GoogLeNet()
 # net = DenseNet121()
@@ -70,7 +70,7 @@ print('==> Building model..')
 # net = ShuffleNetV2(1)
 # net = EfficientNetB0()
 # net = RegNetX_200MF()
-net = SimpleDLA()
+# net = SimpleDLA()
 net = net.to(device)
 if device == 'cuda':
     net = torch.nn.DataParallel(net)
@@ -96,8 +96,8 @@ elif args.optim == 'adam':
 if args.scheduler == 'cosine_annealing':
   scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
 elif args.scheduler == 'onecyclelr':
-  lr_max = 
-  scheduler = OneCycleLR(optimizer, max_lr=0.015, epochs=EPOCHS, steps_per_epoch=len(train_loader), final_div_factor=10, div_factor=10, pct_start=max_lr_epochs/EPOCHS, three_phase=False, anneal_strategy='linear')
+  lr_max = find_max_lr_rangetest("lsmith", model, train_loader)
+  scheduler = OneCycleLR(optimizer, max_lr=lr_max, epochs=epochs, steps_per_epoch=len(train_loader), final_div_factor=10, div_factor=10, pct_start=max_lr_epochs/EPOCHS, three_phase=False, anneal_strategy='linear')
 elif args.scheduler == 'reduced_lr_on_plateau':
   scheduler = 
 
