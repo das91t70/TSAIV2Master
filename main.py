@@ -96,7 +96,7 @@ elif args.scheduler == 'onecyclelr':
   lr_max = find_max_lr_rangetest("lsmith", model, train_loader)
   scheduler = OneCycleLR(optimizer, max_lr=lr_max, epochs=epochs, steps_per_epoch=len(train_loader), final_div_factor=10, div_factor=10, pct_start=max_lr_epochs/EPOCHS, three_phase=False, anneal_strategy='linear')
 elif args.scheduler == 'reduced_lr_on_plateau':
-  scheduler = 
+  scheduler = ReduceLROnPlateau(optimizer, 'min')
 
 
 # Training
