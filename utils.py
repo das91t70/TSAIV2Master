@@ -73,6 +73,31 @@ def find_max_lr_rangetest(test_type, model, train_loader, val_loader=None):
   return max_lr
 
 
+def obtain_misclassified_images(model, test_loader, num):
+  # get mismatched images
+  model_nn.eval()
+  misclassified_images = []
+  misclassified_image_labels = []
+  correct_image_labels = []
+  class_labels = ["airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"]
+  with torch.no_grad():
+      for data, target in test_loader:
+          data, target = data.to(device), target.to(device)
+          output = model(data)
+          pred = output.argmax(dim=1, keepdim=True)
+          pred_classes = pred.squeeze().tolist()
+          target_classes = target.view_as(pred).squeeze().tolist()
+          for index in range(len(pred_classes)):
+            if (pred_classes[index] != target_classes[index]):
+              misclassified_images.append(data[index].cpu())
+              misclassified_image_labels.append(class_labels[pred_classes[index]])
+              correct_image_labels.append(class_labels[target_classes[index]])
+
+  first_num_misclassified_images = misclassified_images[0:num]
+  first_num_misclassified_labels = misclassified_image_labels[0:num]
+  first_num_correct_labels = correct_image_labels[0:num]
+  return first_num_misclassified_images, first_num_misclassified_labels, first_num_correct_labels
+
 # transforms class - used for albumentations
 class Transforms:
     def __init__(self, transforms: albumentations.Compose):
