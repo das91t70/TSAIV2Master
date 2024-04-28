@@ -8,6 +8,8 @@ import torch.backends.cudnn as cudnn
 import torchvision
 import torchvision.transforms as transforms
 
+from torchsummary import summary
+
 import os
 import argparse
 
@@ -35,6 +37,9 @@ def train(epoch):
         correct += predicted.eq(targets).sum().item()
         if args.scheduler == 'one_cycle_lr':
           scheduler.step()
+          last_learning_rate = scheduler.get_last_lr()
+          print("Last computed learning rate: ", last_learning_rate)
+          print("Learning Rate: ", optimizer.param_groups[0]['lr'])
         progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                      % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
@@ -110,6 +115,8 @@ if __name__ == "__main__":
   print('==> Building model..')
   net = ResNet18()
   net = net.to(device)
+  # Summary of model
+  summary(net, input_size=(3, 32, 32))
   epochs = args.epochs
   
   if args.resume:
