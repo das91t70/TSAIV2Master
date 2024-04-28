@@ -35,13 +35,17 @@ def train(epoch):
         _, predicted = outputs.max(1)
         total += targets.size(0)
         correct += predicted.eq(targets).sum().item()
-        if args.scheduler == 'one_cycle_lr':
-          scheduler.step()
-          last_learning_rate = scheduler.get_last_lr()
-          print("Last computed learning rate: ", last_learning_rate)
-          print("Learning Rate: ", optimizer.param_groups[0]['lr'])
-        progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                     % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        
+    train_acc = 100.*correct/total     
+    if args.scheduler == 'one_cycle_lr':
+      scheduler.step()
+      last_learning_rate = scheduler.get_last_lr()
+      print("Last computed learning rate: ", last_learning_rate)
+      print("Learning Rate: ", optimizer.param_groups[0]['lr'])
+    progress_bar('Loss: %.3f | Acc: %.3f%% (%d/%d)'
+                 % (train_loss, train_acc, correct, total))
+
+    return train_loss, train_acc
 
 
 def test(epoch):
@@ -61,9 +65,6 @@ def test(epoch):
             total += targets.size(0)
             correct += predicted.eq(targets).sum().item()
 
-            progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                         % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
-
     # Save checkpoint.
     acc = 100.*correct/total
     if acc > best_acc:
@@ -77,9 +78,15 @@ def test(epoch):
             os.mkdir('checkpoint')
         torch.save(state, './checkpoint/ckpt.pth')
         best_acc = acc
+    progress_bar('Loss: %.3f | Acc: %.3f%% (%d/%d)'
+                 %(test_loss, 100.*correct/total, correct, total)
+    return test_loss, acc
+    
 
 
 if __name__ == "__main__":
+
+  # take parameters and process them
   parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
   parser.add_argument('--lr', default=0.01, type=float, help='learning rate')
   parser.add_argument('--epochs', default=20, type=int, help='epochs')
@@ -88,37 +95,38 @@ if __name__ == "__main__":
   parser.add_argument('--optim', '-o', help='optimizer', default='adam')
   parser.add_argument('--scheduler', '-s', help='scheduler', default='one_cycle_lr')
   args = parser.parse_args()
-  
+
+  # use cuda  
   device = 'cuda' if torch.cuda.is_available() else 'cpu'
   best_acc = 0  # best test accuracy
   start_epoch = 0  # start from epoch 0 or last checkpoint epoch
   
-  # Data
+  # load data transforms
   print('==> Preparing data..')
   transform_train = image_transforms(train=True)
   transform_test = image_transfroms(train=False)
-  
+
+  # load CIFAR training data  
   trainset = torchvision.datasets.CIFAR10(
       root='./data', train=True, download=True, transform=transform_train)
   trainloader = torch.utils.data.DataLoader(
       trainset, batch_size=128, shuffle=True, num_workers=2)
-  
+    
+  # load CIFAR testing data  
   testset = torchvision.datasets.CIFAR10(
       root='./data', train=False, download=True, transform=transform_test)
   testloader = torch.utils.data.DataLoader(
       testset, batch_size=100, shuffle=False, num_workers=2)
-  
-  classes = ('plane', 'car', 'bird', 'cat', 'deer',
-             'dog', 'frog', 'horse', 'ship', 'truck')
-  
-  # Model
+      
+  # Build Resnet model
   print('==> Building model..')
   net = ResNet18()
   net = net.to(device)
-  # Summary of model
+    
+  # Obtain Summary of model
   summary(net, input_size=(3, 32, 32))
+    
   epochs = args.epochs
-  
   if args.resume:
       # Load checkpoint.
       print('==> Resuming from checkpoint..')
@@ -143,9 +151,21 @@ if __name__ == "__main__":
     scheduler = OneCycleLR(optimizer, max_lr=lr_max, epochs=epochs, steps_per_epoch=len(train_loader), final_div_factor=10, div_factor=10, pct_start=max_lr_epochs/EPOCHS, three_phase=False, anneal_strategy='linear')
   elif args.scheduler == 'reduced_lr_on_plateau':
     scheduler = ReduceLROnPlateau(optimizer, 'min')
-  
-  for epoch in range(epochs):
-      train(epoch)
-      test(epoch)
-      if args.scheduler != 'onecyclelr':
+
+  # loop for training and testing data
+  train_losses , test_losses, train_accs, test_accs = []
+
+  for epoch in range(start_epoch, epochs):
+      print("EPOCH :: " + epoch)
+      
+      train_loss, train_acc = train(epoch)
+      test_loss, test_acc = test(epoch)
+      train_losses.append(train_loss)
+      test_losses.append(test_loss)
+      train_accs.append(train_acc)
+      test_accs.append(test_acc)
+      
+      if args.scheduler != 'one_cycle_lr':
         scheduler.step()
+  plot_graphs()
+   
