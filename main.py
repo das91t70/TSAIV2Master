@@ -167,5 +167,5 @@ if __name__ == "__main__":
       
       if args.scheduler != 'one_cycle_lr':
         scheduler.step()
-  plot_graphs()
+  plot_loss_and_accuracy_graphs(train_losses, train_accs, test_losses, test_accs)
    
